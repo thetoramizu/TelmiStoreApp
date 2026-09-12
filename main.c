@@ -1,52 +1,149 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "font8x8.h"
+
 
 #define W 640
 #define H 480
 
-#define BLACK 0x0000
-#define WHITE 0xffff
-#define RED   0xf800
-#define GREEN 0x07e0
-#define BLUE  0x001f
-#define PURPLE 0x780f
+
+#define BLACK  0x0000
+#define WHITE  0xffff
+#define RED    0xf800
+#define GREEN  0x07e0
+#define BLUE   0x001f
 #define YELLOW 0xffe0
 
 
 static Uint16 framebuffer[W*H];
 
 
-void clear_screen(Uint16 c)
+
+/*
+    Données TelmiStore
+*/
+
+typedef struct
+{
+    const char *title;
+    const char *description;
+    int installed;
+
+} Story;
+
+
+
+Story stories[] =
+{
+    {
+        "L ETE DE CECILE",
+        "UNE PETITE FILLE DECOUVRE UNE FORET MYSTERIEUSE",
+        0
+    },
+
+    {
+        "LA FORET MAGIQUE",
+        "UNE AVENTURE AU COEUR D UN MONDE OUBLIE",
+        0
+    },
+
+    {
+        "LE DRAGON BLEU",
+        "UN DRAGON PROTEGE UN ANCIEN ROYAUME",
+        0
+    }
+};
+
+
+#define STORY_COUNT 3
+
+
+
+/*
+    Ecrans
+*/
+
+typedef enum
+{
+    SCREEN_LIST,
+    SCREEN_DETAIL
+
+} Screen;
+
+
+Screen screen = SCREEN_LIST;
+
+
+int selected = 0;
+
+
+
+/*
+    Etat téléchargement
+*/
+
+typedef enum
+{
+    DETAIL_READY,
+    DETAIL_DOWNLOADING,
+    DETAIL_INSTALLED
+
+} DetailState;
+
+
+DetailState detail_state = DETAIL_READY;
+
+
+
+/*
+    Dessin framebuffer
+*/
+
+
+void clear_screen(Uint16 color)
 {
     for(int i=0;i<W*H;i++)
-        framebuffer[i]=c;
+        framebuffer[i]=color;
 }
 
 
-void draw_rect(int x,int y,int w,int h,Uint16 c)
+
+void rect(
+    int x,
+    int y,
+    int w,
+    int h,
+    Uint16 color
+)
 {
     for(int yy=y; yy<y+h; yy++)
     {
         if(yy<0 || yy>=H)
             continue;
 
+
         for(int xx=x; xx<x+w; xx++)
         {
             if(xx>=0 && xx<W)
-                framebuffer[yy*W+xx]=c;
+                framebuffer[yy*W+xx]=color;
         }
     }
 }
 
 
-const uint8_t *find_glyph(char c)
+
+/*
+    Police bitmap
+*/
+
+
+const uint8_t *glyph(char c)
 {
     if(c>='a' && c<='z')
         c-=32;
+
 
     for(unsigned int i=0;i<FONT8X8_COUNT;i++)
     {
@@ -54,16 +151,24 @@ const uint8_t *find_glyph(char c)
             return font8x8[i].data;
     }
 
+
     return NULL;
 }
 
 
 
-void draw_char(int x,int y,char c,Uint16 color,int scale)
+void draw_char(
+    int x,
+    int y,
+    char c,
+    Uint16 color,
+    int scale
+)
 {
-    const uint8_t *glyph=find_glyph(c);
+    const uint8_t *g=glyph(c);
 
-    if(!glyph)
+
+    if(!g)
         return;
 
 
@@ -71,10 +176,9 @@ void draw_char(int x,int y,char c,Uint16 color,int scale)
     {
         for(int col=0;col<8;col++)
         {
-            /* bit 7 = pixel gauche */
-            if(glyph[row] & (0x80 >> col))
+            if(g[row] & (0x80>>col))
             {
-                draw_rect(
+                rect(
                     x+col*scale,
                     y+row*scale,
                     scale,
@@ -88,7 +192,13 @@ void draw_char(int x,int y,char c,Uint16 color,int scale)
 
 
 
-void draw_text(int x,int y,const char *txt,Uint16 color,int scale)
+void draw_text(
+    int x,
+    int y,
+    const char *txt,
+    Uint16 color,
+    int scale
+)
 {
     while(*txt)
     {
@@ -100,29 +210,189 @@ void draw_text(int x,int y,const char *txt,Uint16 color,int scale)
             scale
         );
 
-        x+=8*scale+2;
+
+        x += (8*scale)+2;
+
         txt++;
+    }
+}
+void draw_list()
+{
+    clear_screen(BLUE);
+
+
+    draw_text(
+        70,
+        40,
+        "TELMISTORE",
+        WHITE,
+        3
+    );
+
+
+    draw_text(
+        70,
+        100,
+        "STORIES",
+        YELLOW,
+        2
+    );
+
+
+    for(int i=0;i<STORY_COUNT;i++)
+    {
+        int y = 160 + i*55;
+
+
+        if(i==selected)
+        {
+            rect(
+                50,
+                y-5,
+                540,
+                40,
+                RED
+            );
+        }
+
+
+        draw_text(
+            70,
+            y,
+            stories[i].title,
+            WHITE,
+            2
+        );
+    }
+
+
+    draw_text(
+        70,
+        380,
+        "A DETAILS",
+        YELLOW,
+        2
+    );
+
+
+    draw_text(
+        70,
+        420,
+        "B QUITTER",
+        YELLOW,
+        2
+    );
+}
+
+
+
+void draw_detail()
+{
+    clear_screen(BLUE);
+
+
+    Story *s=&stories[selected];
+
+
+    draw_text(
+        40,
+        40,
+        s->title,
+        WHITE,
+        3
+    );
+
+
+    rect(
+        40,
+        90,
+        560,
+        2,
+        WHITE
+    );
+
+
+    draw_text(
+        40,
+        130,
+        s->description,
+        WHITE,
+        2
+    );
+
+
+
+    if(detail_state==DETAIL_READY)
+    {
+        draw_text(
+            40,
+            350,
+            "A TELECHARGER",
+            YELLOW,
+            2
+        );
+
+        draw_text(
+            40,
+            400,
+            "B RETOUR",
+            YELLOW,
+            2
+        );
+    }
+
+
+    if(detail_state==DETAIL_DOWNLOADING)
+    {
+        draw_text(
+            40,
+            350,
+            "TELECHARGEMENT...",
+            YELLOW,
+            2
+        );
+    }
+
+
+    if(detail_state==DETAIL_INSTALLED)
+    {
+        draw_text(
+            40,
+            350,
+            "INSTALLE OK",
+            YELLOW,
+            2
+        );
+
+        draw_text(
+            40,
+            400,
+            "B RETOUR",
+            YELLOW,
+            2
+        );
     }
 }
 
 
 
-const char *stories[] =
-{
-    "L ETE DE CECILE",
-    "LA FORET MAGIQUE",
-    "NOEL CHEZ LEON",
-    "L ILE MYSTERIEUSE"
-};
-
 
 int main()
 {
+    printf("TelmiStore STORIES start\n");
 
-    printf("TelmiStore TEXT TEST\n");
+
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)!=0)
+    {
+        printf("SDL ERROR %s\n",SDL_GetError());
+        return 1;
+    }
 
 
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
+    printf("Video driver: %s\n",
+        SDL_GetCurrentVideoDriver()
+    );
+
 
 
     SDL_Window *win =
@@ -136,12 +406,29 @@ int main()
         );
 
 
+    if(!win)
+    {
+        printf("Window error\n");
+        return 1;
+    }
+
+
+
     SDL_Renderer *ren =
         SDL_CreateRenderer(
             win,
             -1,
             SDL_RENDERER_ACCELERATED
         );
+
+
+    if(!ren)
+    {
+        printf("Renderer error %s\n",
+            SDL_GetError());
+        return 1;
+    }
+
 
 
     SDL_Texture *tex =
@@ -156,139 +443,132 @@ int main()
 
     if(!tex)
     {
-        printf("texture error\n");
+        printf("Texture error\n");
         return 1;
     }
 
 
+
     int running=1;
-    int selected=0;
-    int screen=0;
+
+
+    Uint32 download_start=0;
+
 
 
     while(running)
     {
-
         SDL_Event e;
 
 
         while(SDL_PollEvent(&e))
         {
-
             if(e.type==SDL_KEYDOWN)
             {
-
-                int k=e.key.keysym.sym;
-
-                printf("Key %d\n",k);
+                int key=e.key.keysym.sym;
 
 
-                if(k==SDLK_RETURN)
+                printf("Key %d\n",key);
+
+
+
+                // START
+                if(key==SDLK_RETURN)
+                {
                     running=0;
-
-
-                if(k==SDLK_DOWN)
-                {
-                    selected++;
-                    if(selected>3)
-                        selected=0;
                 }
 
 
-                if(k==SDLK_UP)
+
+                // LISTE
+                if(screen==SCREEN_LIST)
                 {
-                    selected--;
-                    if(selected<0)
-                        selected=3;
+
+                    if(key==SDLK_DOWN)
+                    {
+                        selected++;
+
+                        if(selected>=STORY_COUNT)
+                            selected=0;
+                    }
+
+
+                    if(key==SDLK_UP)
+                    {
+                        selected--;
+
+                        if(selected<0)
+                            selected=STORY_COUNT-1;
+                    }
+
+
+
+                    // A
+                    if(key==SDLK_SPACE)
+                    {
+                        screen=SCREEN_DETAIL;
+                        detail_state=DETAIL_READY;
+                    }
                 }
 
 
-                // A
-                if(k==SDLK_SPACE)
-                    screen=1;
+
+                // DETAIL
+                else
+                {
+
+                    // B
+                    if(key==SDLK_LCTRL)
+                    {
+                        screen=SCREEN_LIST;
+                    }
 
 
-                // B
-                if(k==SDLK_LCTRL)
-                    screen=0;
+
+                    // A
+                    if(key==SDLK_SPACE)
+                    {
+
+                        if(detail_state==DETAIL_READY)
+                        {
+                            detail_state=DETAIL_DOWNLOADING;
+                            download_start=SDL_GetTicks();
+                        }
+
+                    }
+
+                }
+
             }
         }
 
 
 
-        if(screen==0)
+
+        if(detail_state==DETAIL_DOWNLOADING)
         {
-            clear_screen(GREEN);
-
-            draw_text(
-                80,
-                70,
-                "TELMISTORE",
-                BLACK,
-                3
-            );
-
-
-            draw_text(
-                80,
-                180,
-                "A STORIES",
-                WHITE,
-                2
-            );
-        }
-        else
-        {
-
-            clear_screen(BLUE);
-
-
-            draw_text(
-                60,
-                40,
-                "HISTOIRES",
-                WHITE,
-                3
-            );
-
-
-            for(int i=0;i<4;i++)
+            if(SDL_GetTicks()-download_start > 3000)
             {
-
-                if(i==selected)
-                    draw_rect(
-                        50,
-                        120+i*50,
-                        520,
-                        35,
-                        RED
-                    );
-
-
-                draw_text(
-                    70,
-                    130+i*50,
-                    stories[i],
-                    WHITE,
-                    2
-                );
-
+                stories[selected].installed=1;
+                detail_state=DETAIL_INSTALLED;
             }
-
-
-            draw_text(
-                50,
-                390,
-                "START QUIT",
-                YELLOW,
-                2
-            );
         }
+
+
+
+
+        if(screen==SCREEN_LIST)
+            draw_list();
+        else
+            draw_detail();
+
+
 
 
 
         void *pixels;
         int pitch;
+
 
 
         if(SDL_LockTexture(
@@ -297,7 +577,6 @@ int main()
             &pixels,
             &pitch)==0)
         {
-
             memcpy(
                 pixels,
                 framebuffer,
@@ -322,6 +601,8 @@ int main()
 
         SDL_Delay(16);
     }
+
+
 
 
     SDL_DestroyTexture(tex);
