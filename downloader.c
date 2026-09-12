@@ -7,6 +7,7 @@
 
 #define TMPDIR "/mnt/SDCARD/App/TelmiStore/tmp"
 #define STORIES_DIR "/mnt/SDCARD/Stories"
+#define RUNFILE TMPDIR "/download.running"
 
 #define ZIPFILE TMPDIR "/story.zip"
 #define TMPZIP  TMPDIR "/story.tmp"
@@ -23,6 +24,7 @@ int start_download_story(Story *story)
         cmd,
         sizeof(cmd),
         "rm -f %s %s %s && "
+        "touch %s && "
         "wget "
         "-O %s \"%s\" "
         "> %s 2>&1 && "
@@ -45,9 +47,11 @@ int start_download_story(Story *story)
 
 int download_finished()
 {
-    return system(
-        "test -s " ZIPFILE
-    )==0;
+    return
+        system(
+            "test -s " ZIPFILE " && "
+            "! test -e " RUNFILE
+        )==0;
 }
 
 
