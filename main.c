@@ -390,11 +390,15 @@ if(download_running)
             {
                 int key=e.key.keysym.sym;
 
+if(download_running)
+{
+    if(key==SDLK_RETURN)
+    {
+        running=0;
+    }
 
-                if(download_running)
-                {
-                    continue;
-                }
+    continue;
+}
 
                 printf(
                     "Key %d\n",

@@ -21,7 +21,7 @@ int start_download_story(Story *story)
         cmd,
         sizeof(cmd),
         "rm -f %s %s && "
-        "wget --progress=bar:force "
+        "wget "
         "-O %s \"%s\" "
         "> %s 2>&1 &",
         ZIPFILE,
