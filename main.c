@@ -1,6 +1,5 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
-#include <time.h>
 
 
 #define WIDTH 640
@@ -12,13 +11,13 @@ FILE *logfile;
 
 void logmsg(const char *msg)
 {
+    printf("%s\n", msg);
+
     if(logfile)
     {
         fprintf(logfile, "%s\n", msg);
         fflush(logfile);
     }
-
-    printf("%s\n", msg);
 }
 
 
@@ -26,11 +25,13 @@ int main(int argc, char *argv[])
 {
     logfile = fopen("telmistore.log", "w");
 
+
     logmsg("TelmiStore SDL TEST start");
 
 
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
     {
+        logmsg("SDL Init erreur");
         logmsg(SDL_GetError());
         return 1;
     }
@@ -62,9 +63,8 @@ int main(int argc, char *argv[])
 
     if(!window)
     {
-        logmsg("Erreur SDL_CreateWindow");
+        logmsg("Erreur creation fenetre");
         logmsg(SDL_GetError());
-        SDL_Quit();
         return 1;
     }
 
@@ -73,25 +73,40 @@ int main(int argc, char *argv[])
 
 
 
-    SDL_Renderer *renderer =
-        SDL_CreateRenderer(
-            window,
-            -1,
-            SDL_RENDERER_SOFTWARE
-        );
+    int w,h;
+
+    SDL_GetWindowSize(
+        window,
+        &w,
+        &h
+    );
 
 
-    if(!renderer)
+    snprintf(
+        buffer,
+        sizeof(buffer),
+        "Window size %dx%d",
+        w,
+        h
+    );
+
+    logmsg(buffer);
+
+
+
+    SDL_Surface *screen =
+        SDL_GetWindowSurface(window);
+
+
+    if(!screen)
     {
-        logmsg("Erreur renderer");
+        logmsg("Erreur surface");
         logmsg(SDL_GetError());
-        SDL_DestroyWindow(window);
-        SDL_Quit();
         return 1;
     }
 
 
-    logmsg("Renderer OK");
+    logmsg("Surface OK");
 
 
 
@@ -105,18 +120,16 @@ int main(int argc, char *argv[])
         if(joystick)
             logmsg("Joystick OK");
         else
-            logmsg("Erreur joystick");
-    }
-    else
-    {
-        logmsg("Pas de joystick");
+            logmsg("Joystick erreur");
     }
 
 
 
     int running = 1;
 
-    Uint32 start = SDL_GetTicks();
+
+    Uint32 start =
+        SDL_GetTicks();
 
 
 
@@ -130,10 +143,7 @@ int main(int argc, char *argv[])
         {
 
             if(e.type == SDL_QUIT)
-            {
-                logmsg("SDL_QUIT");
                 running = 0;
-            }
 
 
 
@@ -149,108 +159,103 @@ int main(int argc, char *argv[])
                 logmsg(buffer);
 
 
+                // ESC
                 if(e.key.keysym.sym == SDLK_ESCAPE)
                     running = 0;
-            }
 
 
-
-            if(e.type == SDL_JOYBUTTONDOWN)
-            {
-                snprintf(
-                    buffer,
-                    sizeof(buffer),
-                    "JOY BUTTON %d",
-                    e.jbutton.button
-                );
-
-                logmsg(buffer);
-
-
-                // B ou START selon mapping Onion
-                if(e.jbutton.button == 1 ||
-                   e.jbutton.button == 9)
-                {
+                // B Miyoo souvent espace
+                if(e.key.keysym.sym == SDLK_SPACE)
                     running = 0;
-                }
             }
         }
 
 
 
-        // sécurité : fermeture après 30 secondes
+        /*
+            Fond blanc
+        */
+
+        SDL_FillRect(
+            screen,
+            NULL,
+            SDL_MapRGB(
+                screen->format,
+                255,
+                255,
+                255
+            )
+        );
+
+
+
+        /*
+            Rectangle rouge
+        */
+
+        SDL_Rect red =
+        {
+            100,
+            100,
+            200,
+            100
+        };
+
+
+        SDL_FillRect(
+            screen,
+            &red,
+            SDL_MapRGB(
+                screen->format,
+                255,
+                0,
+                0
+            )
+        );
+
+
+
+        /*
+            Rectangle bleu
+        */
+
+        SDL_Rect blue =
+        {
+            350,
+            250,
+            150,
+            100
+        };
+
+
+        SDL_FillRect(
+            screen,
+            &blue,
+            SDL_MapRGB(
+                screen->format,
+                0,
+                0,
+                255
+            )
+        );
+
+
+
+        SDL_UpdateWindowSurface(
+            window
+        );
+
+
+
+        /*
+            Sécurité : fermeture après 30 secondes
+        */
+
         if(SDL_GetTicks() - start > 30000)
         {
-            logmsg("Timeout 30s");
+            logmsg("Timeout");
             running = 0;
         }
-
-
-
-        // fond bleu
-        SDL_SetRenderDrawColor(
-            renderer,
-            20,
-            40,
-            100,
-            255
-        );
-
-        SDL_RenderClear(renderer);
-
-
-
-        // carré rouge
-        SDL_Rect r1 =
-        {
-            100,
-            100,
-            200,
-            100
-        };
-
-
-        SDL_SetRenderDrawColor(
-            renderer,
-            255,
-            0,
-            0,
-            255
-        );
-
-        SDL_RenderFillRect(
-            renderer,
-            &r1
-        );
-
-
-
-        // carré vert
-        SDL_Rect r2 =
-        {
-            340,
-            250,
-            200,
-            100
-        };
-
-
-        SDL_SetRenderDrawColor(
-            renderer,
-            0,
-            255,
-            0,
-            255
-        );
-
-        SDL_RenderFillRect(
-            renderer,
-            &r2
-        );
-
-
-
-        SDL_RenderPresent(renderer);
 
 
         SDL_Delay(16);
@@ -258,18 +263,22 @@ int main(int argc, char *argv[])
 
 
 
-    logmsg("Closing");
+    logmsg("Fermeture TelmiStore");
+
 
 
     if(joystick)
         SDL_JoystickClose(joystick);
 
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+
+    SDL_DestroyWindow(
+        window
+    );
 
 
     SDL_Quit();
+
 
 
     if(logfile)
