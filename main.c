@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "text.h"
 #include "store.h"
@@ -19,7 +20,7 @@
 
 
 Uint16 framebuffer[W*H];
-
+static int download_running=0;
 
 
 void rect(
@@ -218,16 +219,32 @@ void draw_detail()
 
 
 
-    if(detail_state==DETAIL_DOWNLOADING)
+if(download_running)
+{
+    if(download_finished())
     {
-        text_draw(
-            40,
-            350,
-            "TELECHARGEMENT",
-            YELLOW,
-            2
+        download_running=0;
+
+        char cmd[512];
+
+        snprintf(
+            cmd,
+            sizeof(cmd),
+            "busybox unzip -o /mnt/SDCARD/App/TelmiStore/tmp/story.zip -d /mnt/SDCARD/Stories"
         );
+
+
+        if(system(cmd)==0)
+        {
+            stories[selected].installed=1;
+            detail_state=DETAIL_INSTALLED;
+        }
+        else
+        {
+            detail_state=DETAIL_READY;
+        }
     }
+}
 
 
 
@@ -442,16 +459,11 @@ int main()
                         {
                             detail_state=DETAIL_DOWNLOADING;
 
+                            start_download_story(&stories[selected]);
 
-                            if(download_story(&stories[selected]))
-                            {
-                                stories[selected].installed=1;
-                                detail_state=DETAIL_INSTALLED;
-                            }
-                            else
-                            {
-                                detail_state=DETAIL_READY;
-                            }
+                            download_running=1;
+
+                            detail_state=DETAIL_DOWNLOADING;
                         }
                     }
 

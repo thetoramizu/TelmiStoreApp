@@ -9,6 +9,23 @@
 #define STORIES_DIR "/mnt/SDCARD/Stories"
 
 
+int start_download_story(Story *story)
+{
+    char cmd[1024];
+
+
+    snprintf(
+        cmd,
+        sizeof(cmd),
+        "wget -O /mnt/SDCARD/App/TelmiStore/tmp/story.zip \"%s\" "
+        "> /mnt/SDCARD/App/TelmiStore/tmp/download.log 2>&1 &",
+        story->download
+    );
+
+
+    return system(cmd);
+}
+
 int download_story(Story *story)
 {
     char cmd[1024];
@@ -79,4 +96,11 @@ int download_story(Story *story)
 
 
     return 1;
+}
+
+int download_finished()
+{
+    return system(
+        "test -s /mnt/SDCARD/App/TelmiStore/tmp/story.zip"
+    )==0;
 }
