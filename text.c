@@ -264,10 +264,10 @@ void text_draw_wrap(
     int scale
 )
 {
-    int start_x=x;
+    int start_x = x;
 
-    int line_height=
-        (8*scale)+6;
+    int line_height =
+        (8 * scale) + 6;
 
 
     char word[128];
@@ -275,30 +275,32 @@ void text_draw_wrap(
 
     while(*txt)
     {
-        int len=0;
+        int bytes = 0;
 
 
-        const char *save=txt;
-
-
-        while(*txt && *txt!=' ')
+        /*
+            Trouve la longueur du mot en OCTETS
+        */
+        while(
+            txt[bytes] &&
+            txt[bytes] != ' '
+        )
         {
-            utf8_next(&txt);
-            len++;
+            bytes++;
         }
 
 
-        if(len>=127)
-            len=127;
+        if(bytes >= sizeof(word))
+            bytes = sizeof(word)-1;
 
 
-        strncpy(
+        memcpy(
             word,
-            save,
-            sizeof(word)-1
+            txt,
+            bytes
         );
 
-        word[sizeof(word)-1]=0;
+        word[bytes]=0;
 
 
 
@@ -310,8 +312,11 @@ void text_draw_wrap(
 
 
 
+        /*
+            Retour ligne
+        */
         if(
-            x-start_x+word_width > width
+            x - start_x + word_width > width
         )
         {
             x=start_x;
@@ -329,14 +334,24 @@ void text_draw_wrap(
         );
 
 
-        x+=word_width;
+        x += word_width;
 
 
 
+        /*
+            Saute le mot dans le texte original
+        */
+        txt += bytes;
+
+
+        /*
+            Mange l'espace
+        */
         if(*txt==' ')
         {
-            x+=(8*scale)+2;
             txt++;
+
+            x += (8*scale)+2;
         }
     }
 }
