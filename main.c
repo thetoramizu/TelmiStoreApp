@@ -20,7 +20,9 @@
 
 
 Uint16 framebuffer[W*H];
+
 static int download_running=0;
+static int download_percent=0;
 
 
 void rect(
@@ -217,35 +219,25 @@ void draw_detail()
         );
     }
 
-
-
-if(download_running)
-{
-    if(download_finished())
+    if(detail_state==DETAIL_DOWNLOADING)
     {
-        download_running=0;
+        char txt[64];
 
-        char cmd[512];
-
-        snprintf(
-            cmd,
-            sizeof(cmd),
-            "busybox unzip -o /mnt/SDCARD/App/TelmiStore/tmp/story.zip -d /mnt/SDCARD/Stories"
+        sprintf(
+            txt,
+            "TELECHARGEMENT %d%%",
+            download_percent
         );
 
 
-        if(system(cmd)==0)
-        {
-            stories[selected].installed=1;
-            detail_state=DETAIL_INSTALLED;
-        }
-        else
-        {
-            detail_state=DETAIL_READY;
-        }
+        text_draw(
+            40,
+            350,
+            txt,
+            YELLOW,
+            2
+        );
     }
-}
-
 
 
     if(detail_state==DETAIL_INSTALLED)
@@ -369,7 +361,28 @@ int main()
     {
         SDL_Event e;
 
+if(download_running)
+{
+    download_percent = download_progress();
 
+
+    if(download_finished())
+    {
+        download_running=0;
+        download_percent=100;
+
+        if(unzip_story())
+        {
+        stories[selected].installed=1;
+        detail_state=DETAIL_INSTALLED;
+        }
+        else
+        {
+        detail_state=DETAIL_READY;
+        }
+       
+    }
+}
 
         while(SDL_PollEvent(&e))
         {
@@ -377,6 +390,11 @@ int main()
             {
                 int key=e.key.keysym.sym;
 
+
+                if(download_running)
+                {
+                    continue;
+                }
 
                 printf(
                     "Key %d\n",
@@ -462,8 +480,7 @@ int main()
                             start_download_story(&stories[selected]);
 
                             download_running=1;
-
-                            detail_state=DETAIL_DOWNLOADING;
+                            download_percent=0; 
                         }
                     }
 

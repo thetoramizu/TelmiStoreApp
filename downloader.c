@@ -8,6 +8,9 @@
 #define TMPDIR "/mnt/SDCARD/App/TelmiStore/tmp"
 #define STORIES_DIR "/mnt/SDCARD/Stories"
 
+#define ZIPFILE TMPDIR "/story.zip"
+#define LOGFILE TMPDIR "/download.log"
+
 
 int start_download_story(Story *story)
 {
@@ -17,90 +20,89 @@ int start_download_story(Story *story)
     snprintf(
         cmd,
         sizeof(cmd),
-        "wget -O /mnt/SDCARD/App/TelmiStore/tmp/story.zip \"%s\" "
-        "> /mnt/SDCARD/App/TelmiStore/tmp/download.log 2>&1 &",
-        story->download
+        "rm -f %s %s && "
+        "wget --progress=bar:force "
+        "-O %s \"%s\" "
+        "> %s 2>&1 &",
+        ZIPFILE,
+        LOGFILE,
+        ZIPFILE,
+        story->download,
+        LOGFILE
     );
 
 
     return system(cmd);
 }
 
-int download_story(Story *story)
-{
-    char cmd[1024];
 
-
-    /*
-        Téléchargement ZIP
-    */
-
-    snprintf(
-        cmd,
-        sizeof(cmd),
-        "mkdir -p %s && "
-        "wget -O %s/story.zip \"%s\"",
-        TMPDIR,
-        TMPDIR,
-        story->download
-    );
-
-
-    int ret = system(cmd);
-
-
-    if(ret != 0)
-        return 0;
-
-
-
-    /*
-        Vérification ZIP
-    */
-
-    snprintf(
-        cmd,
-        sizeof(cmd),
-        "test -s %s/story.zip",
-        TMPDIR
-    );
-
-
-    ret = system(cmd);
-
-
-    if(ret != 0)
-        return 0;
-
-
-
-    /*
-        Décompression
-    */
-
-    snprintf(
-        cmd,
-        sizeof(cmd),
-        "busybox unzip -o %s/story.zip -d %s",
-        TMPDIR,
-        STORIES_DIR
-    );
-
-
-    ret = system(cmd);
-
-
-    if(ret != 0)
-        return 0;
-
-
-
-    return 1;
-}
 
 int download_finished()
 {
     return system(
-        "test -s /mnt/SDCARD/App/TelmiStore/tmp/story.zip"
+        "test -s " ZIPFILE
     )==0;
+}
+
+
+
+int download_progress()
+{
+    FILE *f;
+
+
+    f=fopen(
+        LOGFILE,
+        "r"
+    );
+
+
+    if(!f)
+        return 0;
+
+
+    char line[256];
+
+    int percent=0;
+
+
+    while(fgets(line,sizeof(line),f))
+    {
+        int p;
+
+
+        if(sscanf(
+            line,
+            "%*[^0-9]%d%%",
+            &p
+        )==1)
+        {
+            percent=p;
+        }
+    }
+
+
+    fclose(f);
+
+
+    return percent;
+}
+
+
+
+int unzip_story()
+{
+    char cmd[512];
+
+
+    snprintf(
+        cmd,
+        sizeof(cmd),
+        "busybox unzip -o %s -d %s",
+        ZIPFILE,
+        STORIES_DIR
+    );
+
+
+    return system(cmd)==0;
 }
