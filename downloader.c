@@ -66,12 +66,10 @@ int download_progress()
 {
     FILE *f;
 
-
     f=fopen(
         LOGFILE,
         "r"
     );
-
 
     if(!f)
         return 0;
@@ -84,16 +82,28 @@ int download_progress()
 
     while(fgets(line,sizeof(line),f))
     {
-        int p;
+        char *p=strchr(line,'%');
 
 
-        if(sscanf(
-            line,
-            "%*[^0-9]%d%%",
-            &p
-        )==1)
+        if(p)
         {
-            percent=p;
+            int value=0;
+            int multiplier=1;
+
+
+            p--;
+
+
+            while(p>=line && *p>='0' && *p<='9')
+            {
+                value += (*p-'0') * multiplier;
+                multiplier *= 10;
+                p--;
+            }
+
+
+            if(value>=0 && value<=100)
+                percent=value;
         }
     }
 
