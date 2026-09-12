@@ -1,62 +1,103 @@
+#include <stdint.h>
+#include <string.h>
+
 #include "text.h"
 #include "font8x8.h"
 
-#include <string.h>
-#include <stdint.h>
+
+extern uint16_t framebuffer[];
+
+#define W 640
+#define H 480
 
 
-extern void rect(
-    int x,
-    int y,
-    int w,
-    int h,
-    uint16_t color
-);
+
+static const uint8_t *find_glyph(uint32_t c)
+{
+    for(unsigned int i=0;i<FONT8X8_COUNT;i++)
+    {
+        if(font8x8[i].c == c)
+            return font8x8[i].data;
+    }
+
+    return NULL;
+}
 
 
 
 /*
-    Retourne le prochain caractère UTF-8
-    et avance le pointeur.
+    Lecture UTF-8
 */
-static uint32_t utf8_next(const char **s)
+static uint32_t utf8_next(
+    const char **p
+)
 {
-    const unsigned char *p =
-        (const unsigned char *)*s;
-
+    const unsigned char *s=(const unsigned char*)*p;
 
     uint32_t c;
 
 
-    if(p[0] < 0x80)
+    if(s[0] < 0x80)
     {
-        c = p[0];
-        *s += 1;
+        c=s[0];
+        *p+=1;
     }
-
-    else if((p[0] & 0xe0) == 0xc0)
+    else if((s[0]&0xe0)==0xc0)
     {
-        c =
-            ((p[0] & 0x1f) << 6) |
-            (p[1] & 0x3f);
+        c=((s[0]&0x1f)<<6)
+        |(s[1]&0x3f);
 
-        *s += 2;
+        *p+=2;
     }
-
-    else if((p[0] & 0xf0) == 0xe0)
+    else if((s[0]&0xf0)==0xe0)
     {
-        c =
-            ((p[0] & 0x0f) << 12) |
-            ((p[1] & 0x3f) << 6) |
-            (p[2] & 0x3f);
+        c=((s[0]&0x0f)<<12)
+        |((s[1]&0x3f)<<6)
+        |(s[2]&0x3f);
 
-        *s += 3;
+        *p+=3;
     }
-
     else
     {
         c='?';
-        *s += 1;
+        *p+=1;
+    }
+
+
+    /*
+        Majuscules accentuées
+        -> majuscule simple
+    */
+
+    switch(c)
+    {
+        case 0x00c0:
+        case 0x00c2:
+            c='A';
+            break;
+
+        case 0x00c7:
+            c='C';
+            break;
+
+        case 0x00c8:
+        case 0x00c9:
+        case 0x00ca:
+            c='E';
+            break;
+
+        case 0x00ce:
+            c='I';
+            break;
+
+        case 0x00d4:
+            c='O';
+            break;
+
+        case 0x00d9:
+        case 0x00db:
+            c='U';
+            break;
     }
 
 
@@ -65,109 +106,25 @@ static uint32_t utf8_next(const char **s)
 
 
 
-/*
-    Conversion caractères français
-    vers glyphes internes.
-*/
-static char convert_char(uint32_t c)
-{
-    switch(c)
-    {
-        case 0x00e9: // é
-        case 0x00e8: // è
-        case 0x00ea: // ê
-        case 0x00eb: // ë
-        case 0x00c9: // É
-            return 'E';
-
-
-        case 0x00e0: // à
-        case 0x00e2: // â
-        case 0x00e4: // ä
-        case 0x00c0:
-            return 'A';
-
-
-        case 0x00e7: // ç
-        case 0x00c7:
-            return 'C';
-
-
-        case 0x00f9: // ù
-        case 0x00fb: // û
-        case 0x00fc: // ü
-        case 0x00d9:
-            return 'U';
-
-
-        case 0x00f4: // ô
-        case 0x00f6: // ö
-        case 0x00d4:
-            return 'O';
-
-
-        case 0x00ee: // î
-        case 0x00ef: // ï
-        case 0x00ce:
-            return 'I';
-
-
-        default:
-
-            if(c < 128)
-            {
-                char ch=(char)c;
-
-                if(ch>='a' && ch<='z')
-                    ch-=32;
-
-                return ch;
-            }
-
-            return '?';
-    }
-}
-
-
-
-static const uint8_t *get_glyph(char c)
-{
-    for(unsigned int i=0;i<FONT8X8_COUNT;i++)
-    {
-        if(font8x8[i].c==c)
-            return font8x8[i].data;
-    }
-
-
-    return NULL;
-}
-
-
-
-static void draw_char(
+static void draw_pixel_char(
     int x,
     int y,
-    char c,
+    uint32_t c,
     uint16_t color,
     int scale
 )
 {
-    const uint8_t *g =
-        get_glyph(c);
+    const uint8_t *g=find_glyph(c);
 
 
     if(!g)
     {
-        rect(
-            x,
-            y,
-            8*scale,
-            8*scale,
-            0xf800
-        );
-
-        return;
+        g=find_glyph('?');
     }
+
+
+    if(!g)
+        return;
 
 
 
@@ -177,13 +134,21 @@ static void draw_char(
         {
             if(g[row] & (0x80>>col))
             {
-                rect(
-                    x+col*scale,
-                    y+row*scale,
-                    scale,
-                    scale,
-                    color
-                );
+                for(int yy=0;yy<scale;yy++)
+                {
+                    for(int xx=0;xx<scale;xx++)
+                    {
+                        int px=x+col*scale+xx;
+                        int py=y+row*scale+yy;
+
+
+                        if(px>=0 && px<W &&
+                           py>=0 && py<H)
+                        {
+                            framebuffer[py*W+px]=color;
+                        }
+                    }
+                }
             }
         }
     }
@@ -196,28 +161,18 @@ int text_width(
     int scale
 )
 {
-    int width=0;
+    int w=0;
 
 
     while(*txt)
     {
-        const char *old=txt;
+        utf8_next(&txt);
 
-        uint32_t c=utf8_next(&txt);
-
-
-        (void)c;
-
-
-        if(txt==old)
-            break;
-
-
-        width += (8*scale)+2;
+        w += (8*scale)+2;
     }
 
 
-    return width;
+    return w;
 }
 
 
@@ -232,18 +187,13 @@ void text_draw(
 {
     while(*txt)
     {
-        uint32_t c =
-            utf8_next(&txt);
+        uint32_t c=utf8_next(&txt);
 
 
-        char out =
-            convert_char(c);
-
-
-        draw_char(
+        draw_pixel_char(
             x,
             y,
-            out,
+            c,
             color,
             scale
         );
@@ -252,6 +202,7 @@ void text_draw(
         x += (8*scale)+2;
     }
 }
+
 
 
 
@@ -264,94 +215,43 @@ void text_draw_wrap(
     int scale
 )
 {
-    int start_x = x;
-
-    int line_height =
-        (8 * scale) + 6;
-
-
-    char word[128];
+    int start_x=x;
 
 
     while(*txt)
     {
-        int bytes = 0;
+        const char *old=txt;
 
-
-        /*
-            Trouve la longueur du mot en OCTETS
-        */
-        while(
-            txt[bytes] &&
-            txt[bytes] != ' '
-        )
-        {
-            bytes++;
-        }
-
-
-        if(bytes >= sizeof(word))
-            bytes = sizeof(word)-1;
-
-
-        memcpy(
-            word,
-            txt,
-            bytes
-        );
-
-        word[bytes]=0;
+        uint32_t c=utf8_next(&txt);
 
 
 
-        int word_width =
-            text_width(
-                word,
-                scale
-            );
-
-
-
-        /*
-            Retour ligne
-        */
-        if(
-            x - start_x + word_width > width
-        )
+        if(c=='\n')
         {
             x=start_x;
-            y+=line_height;
+            y += 10*scale;
+            continue;
         }
 
 
 
-        text_draw(
+        if(x+(8*scale)>width)
+        {
+            x=start_x;
+            y += 10*scale;
+        }
+
+
+
+        draw_pixel_char(
             x,
             y,
-            word,
+            c,
             color,
             scale
         );
 
 
-        x += word_width;
-
-
-
-        /*
-            Saute le mot dans le texte original
-        */
-        txt += bytes;
-
-
-        /*
-            Mange l'espace
-        */
-        if(*txt==' ')
-        {
-            txt++;
-
-            x += (8*scale)+2;
-        }
+        x += (8*scale)+2;
     }
 }

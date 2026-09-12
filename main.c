@@ -18,7 +18,7 @@
 #define YELLOW 0xffe0
 
 
-static Uint16 framebuffer[W*H];
+Uint16 framebuffer[W*H];
 
 
 

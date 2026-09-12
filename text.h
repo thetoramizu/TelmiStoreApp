@@ -5,7 +5,7 @@
 
 
 /*
-    Dessine une chaîne simple
+    Affichage texte simple
 */
 void text_draw(
     int x,
@@ -16,9 +16,9 @@ void text_draw(
 );
 
 
+
 /*
-    Dessine une chaîne avec retour automatique
-    à la ligne.
+    Affichage texte avec retour automatique
 */
 void text_draw_wrap(
     int x,
@@ -30,8 +30,9 @@ void text_draw_wrap(
 );
 
 
+
 /*
-    Retourne la largeur approximative d'un texte
+    Calcule la largeur d'un texte
 */
 int text_width(
     const char *txt,
