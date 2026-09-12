@@ -4,7 +4,7 @@
 
 #include "text.h"
 #include "store.h"
-
+#include "downloader.h"
 
 #define W 640
 #define H 480
@@ -347,9 +347,6 @@ int main()
     int running=1;
 
 
-    Uint32 download_start=0;
-
-
 
     while(running)
     {
@@ -443,35 +440,23 @@ int main()
                     {
                         if(detail_state==DETAIL_READY)
                         {
-                            detail_state=
-                                DETAIL_DOWNLOADING;
+                            detail_state=DETAIL_DOWNLOADING;
 
-                            download_start =
-                                SDL_GetTicks();
+
+                            if(download_story(&stories[selected]))
+                            {
+                                stories[selected].installed=1;
+                                detail_state=DETAIL_INSTALLED;
+                            }
+                            else
+                            {
+                                detail_state=DETAIL_READY;
+                            }
                         }
                     }
 
                 }
 
-            }
-        }
-
-
-
-        /*
-            Simulation téléchargement
-            temporaire pour valider l'écran
-        */
-        if(detail_state==DETAIL_DOWNLOADING)
-        {
-            if(
-                SDL_GetTicks()-download_start > 3000
-            )
-            {
-                stories[selected].installed=1;
-
-                detail_state=
-                    DETAIL_INSTALLED;
             }
         }
 

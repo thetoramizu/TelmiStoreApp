@@ -10,7 +10,7 @@ LDFLAGS= \
 
 TARGET=telmistore
 
-SRC=main.c store.c text.c
+SRC=main.c store.c text.c downloader.c
 
 all:
 	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
