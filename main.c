@@ -71,7 +71,8 @@ void draw_char(int x,int y,char c,Uint16 color,int scale)
     {
         for(int col=0;col<8;col++)
         {
-            if(glyph[row] & (1<<col))
+            /* bit 7 = pixel gauche */
+            if(glyph[row] & (0x80 >> col))
             {
                 draw_rect(
                     x+col*scale,
