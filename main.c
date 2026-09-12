@@ -1,172 +1,230 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
-#include <string.h>
 
-int main(int argc, char **argv)
+
+int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
 
-    printf("TelmiStore TEST start\n");
+    printf("TelmiStore SDL TEST start\n");
+
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
     {
-        printf("SDL_Init error: %s\n", SDL_GetError());
+        printf("SDL Init erreur: %s\n", SDL_GetError());
         return 1;
     }
+
 
     printf("Video driver: %s\n", SDL_GetCurrentVideoDriver());
 
 
-    SDL_Window *win = SDL_CreateWindow(
+    SDL_Window *window = SDL_CreateWindow(
         "TelmiStore",
-        0,
-        0,
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
         640,
         480,
         SDL_WINDOW_FULLSCREEN
     );
 
-    if (!win)
+
+    if (!window)
     {
-        printf("Window error: %s\n", SDL_GetError());
+        printf("Window erreur: %s\n", SDL_GetError());
+        SDL_Quit();
         return 1;
     }
+
 
     printf("Window OK\n");
 
 
-    SDL_Renderer *ren = SDL_CreateRenderer(
-        win,
+    SDL_Renderer *renderer = SDL_CreateRenderer(
+        window,
         -1,
         SDL_RENDERER_ACCELERATED
     );
 
-    if (!ren)
+
+    if (!renderer)
     {
-        printf("Renderer error: %s\n", SDL_GetError());
+        printf("Renderer erreur: %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
         return 1;
     }
+
 
     printf("Renderer OK\n");
 
 
-    SDL_Texture *tex = SDL_CreateTexture(
-        ren,
-        SDL_PIXELFORMAT_RGB565,
-        SDL_TEXTUREACCESS_STREAMING,
-        640,
-        480
-    );
+    int joycount = SDL_NumJoysticks();
 
-    if (!tex)
+    printf("Joysticks: %d\n", joycount);
+
+    if (joycount > 0)
     {
-        printf("Texture error: %s\n", SDL_GetError());
-        return 1;
-    }
+        SDL_Joystick *joy = SDL_JoystickOpen(0);
 
-    printf("Texture OK\n");
-
-
-    /* écran rouge RGB565 */
-    void *pixels;
-    int pitch;
-
-    if (SDL_LockTexture(tex, NULL, &pixels, &pitch) == 0)
-    {
-        unsigned short *p = (unsigned short *)pixels;
-
-        for (int y = 0; y < 480; y++)
-        {
-            for (int x = 0; x < 640; x++)
-            {
-                /*
-                 * RGB565:
-                 * rouge = 11111 000000 00000
-                 */
-                p[y * (pitch / 2) + x] = 0xF800;
-            }
-        }
-
-        SDL_UnlockTexture(tex);
+        if (joy)
+            printf("Joystick OK\n");
     }
 
 
-    SDL_Joystick *joy = NULL;
-
-    if (SDL_NumJoysticks() > 0)
-    {
-        joy = SDL_JoystickOpen(0);
-        printf("Joystick OK\n");
-    }
-
+    SDL_Color white = {255,255,255,255};
 
     SDL_Event e;
+
     int running = 1;
 
 
-    while (running)
+    while(running)
     {
 
-        while (SDL_PollEvent(&e))
+        while(SDL_PollEvent(&e))
         {
-            if (e.type == SDL_QUIT)
-                running = 0;
 
-
-            if (e.type == SDL_KEYDOWN)
+            if(e.type == SDL_QUIT)
             {
-                printf("Key %d\n", e.key.keysym.sym);
-
-                /*
-                 * START / ENTER / ESC quittent
-                 */
-                if (e.key.keysym.sym == SDLK_RETURN ||
-                    e.key.keysym.sym == SDLK_ESCAPE)
-                {
-                    running = 0;
-                }
+                running = 0;
             }
 
-            if (e.type == SDL_JOYBUTTONDOWN)
-            {
-                printf("Joy button %d\n", e.jbutton.button);
 
-                /*
-                 * bouton B souvent = 1
-                 */
-                if (e.jbutton.button == 1)
-                    running = 0;
+            if(e.type == SDL_KEYDOWN)
+            {
+                int key = e.key.keysym.sym;
+
+                printf("Key %d\n", key);
+
+
+                switch(key)
+                {
+
+                    // B
+                    case SDLK_LCTRL:
+                        printf("B -> exit\n");
+                        running = 0;
+                        break;
+
+
+                    // START
+                    case SDLK_RETURN:
+                        printf("START -> exit\n");
+                        running = 0;
+                        break;
+
+
+                    case SDLK_UP:
+                        printf("UP\n");
+                        break;
+
+
+                    case SDLK_DOWN:
+                        printf("DOWN\n");
+                        break;
+
+
+                    case SDLK_LEFT:
+                        printf("LEFT\n");
+                        break;
+
+
+                    case SDLK_RIGHT:
+                        printf("RIGHT\n");
+                        break;
+
+
+                    // A
+                    case SDLK_SPACE:
+                        printf("A\n");
+                        break;
+
+
+                    // X
+                    case SDLK_LSHIFT:
+                        printf("X\n");
+                        break;
+
+
+                    // Y
+                    case SDLK_LALT:
+                        printf("Y\n");
+                        break;
+
+
+                    // SELECT
+                    case SDLK_RCTRL:
+                        printf("SELECT\n");
+                        break;
+                }
             }
         }
 
 
-        SDL_RenderClear(ren);
 
-        SDL_RenderCopy(
-            ren,
-            tex,
-            NULL,
-            NULL
+        /*
+         * Test affichage Miyoo
+         */
+
+        SDL_SetRenderDrawColor(
+            renderer,
+            180,
+            0,
+            0,
+            255
         );
 
-        SDL_RenderPresent(ren);
+        SDL_RenderClear(renderer);
+
+
+
+        /*
+         * Petit rectangle de vie
+         * pour confirmer que le framebuffer bouge
+         */
+
+        SDL_Rect box;
+
+        box.x = 220;
+        box.y = 180;
+        box.w = 200;
+        box.h = 120;
+
+
+        SDL_SetRenderDrawColor(
+            renderer,
+            255,
+            255,
+            255,
+            255
+        );
+
+
+        SDL_RenderFillRect(
+            renderer,
+            &box
+        );
+
+
+        SDL_RenderPresent(renderer);
 
 
         SDL_Delay(16);
     }
 
 
-    printf("Exit TelmiStore\n");
 
-    if (joy)
-        SDL_JoystickClose(joy);
+    printf("Fermeture TelmiStore\n");
 
-    SDL_DestroyTexture(tex);
-    SDL_DestroyRenderer(ren);
-    SDL_DestroyWindow(win);
+
+    SDL_DestroyRenderer(renderer);
+
+    SDL_DestroyWindow(window);
 
     SDL_Quit();
+
 
     return 0;
 }
