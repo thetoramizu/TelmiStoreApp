@@ -223,12 +223,10 @@ void draw_detail()
     {
         char txt[64];
 
-        sprintf(
-            txt,
-            "TELECHARGEMENT %d%%",
-            download_percent
-        );
-
+ if(download_percent>=100)
+        sprintf(txt,"DECOMPRESSION...");
+    else
+        sprintf(txt,"TELECHARGEMENT %d%%",download_percent);
 
         text_draw(
             40,
@@ -366,22 +364,22 @@ if(download_running)
     download_percent = download_progress();
 
 
-    if(download_finished())
+if(download_finished())
+{
+    download_percent=100;
+
+    if(unzip_story())
     {
         download_running=0;
-        download_percent=100;
-
-        if(unzip_story())
-        {
         stories[selected].installed=1;
         detail_state=DETAIL_INSTALLED;
-        }
-        else
-        {
-        detail_state=DETAIL_READY;
-        }
-       
     }
+    else
+    {
+        download_running=0;
+        detail_state=DETAIL_READY;
+    }
+}
 }
 
         while(SDL_PollEvent(&e))

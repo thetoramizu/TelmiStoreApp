@@ -9,7 +9,9 @@
 #define STORIES_DIR "/mnt/SDCARD/Stories"
 
 #define ZIPFILE TMPDIR "/story.zip"
+#define TMPZIP  TMPDIR "/story.tmp"
 #define LOGFILE TMPDIR "/download.log"
+
 
 
 int start_download_story(Story *story)
@@ -20,15 +22,19 @@ int start_download_story(Story *story)
     snprintf(
         cmd,
         sizeof(cmd),
-        "rm -f %s %s && "
+        "rm -f %s %s %s && "
         "wget "
         "-O %s \"%s\" "
-        "> %s 2>&1 &",
+        "> %s 2>&1 && "
+        "mv %s %s &",
         ZIPFILE,
+        TMPZIP,
         LOGFILE,
-        ZIPFILE,
+        TMPZIP,
         story->download,
-        LOGFILE
+        LOGFILE,
+        TMPZIP,
+        ZIPFILE
     );
 
 
