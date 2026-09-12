@@ -6,26 +6,12 @@
 #define HEIGHT 480
 
 
-typedef struct
-{
-    const char *title;
-    const char *zip;
-} Story;
-
-
-Story stories[] =
-{
-    {"La grande aventure spatiale", "giglaxe.zip"},
-    {"Voyage en terre ocre", "mpa.zip"}
-};
-
-
 int main(int argc, char *argv[])
 {
-    printf("TelmiStore SDL start\n");
+    printf("TelmiStore SDL TEST start\n");
 
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
     {
         printf("SDL init erreur: %s\n", SDL_GetError());
         return 1;
@@ -33,7 +19,7 @@ int main(int argc, char *argv[])
 
 
     SDL_Window *window = SDL_CreateWindow(
-        "TelmiStore",
+        "TelmiStore TEST",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         WIDTH,
@@ -42,41 +28,49 @@ int main(int argc, char *argv[])
     );
 
 
-    if (!window)
+    if(!window)
     {
-        printf("Fenetre erreur: %s\n", SDL_GetError());
+        printf("Erreur fenetre: %s\n", SDL_GetError());
+        SDL_Quit();
         return 1;
     }
 
 
     SDL_Renderer *renderer =
-        SDL_CreateRenderer(window, -1, 0);
+        SDL_CreateRenderer(
+            window,
+            -1,
+            SDL_RENDERER_SOFTWARE
+        );
 
 
-    if (!renderer)
+    if(!renderer)
     {
-        printf("Renderer erreur: %s\n", SDL_GetError());
+        printf("Erreur renderer: %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
         return 1;
     }
 
-SDL_Joystick *joystick = NULL;
 
-if(SDL_NumJoysticks() > 0)
-{
-    joystick = SDL_JoystickOpen(0);
+    SDL_Joystick *joystick = NULL;
 
-    if(joystick)
-        printf("Joystick OK\n");
+
+    if(SDL_NumJoysticks() > 0)
+    {
+        joystick = SDL_JoystickOpen(0);
+
+        if(joystick)
+            printf("Joystick OK\n");
+        else
+            printf("Erreur joystick: %s\n", SDL_GetError());
+    }
     else
-        printf("Erreur joystick: %s\n", SDL_GetError());
-}
-else
-{
-    printf("Pas de joystick\n");
-}
+    {
+        printf("Pas de joystick\n");
+    }
 
 
-    int selected = 0;
     int running = 1;
 
 
@@ -87,116 +81,103 @@ else
 
         while(SDL_PollEvent(&e))
         {
-
             if(e.type == SDL_QUIT)
                 running = 0;
 
 
+            if(e.type == SDL_KEYDOWN)
+            {
+                printf("Key %d\n", e.key.keysym.sym);
+
+                if(e.key.keysym.sym == SDLK_ESCAPE)
+                    running = 0;
+            }
+
+
             if(e.type == SDL_JOYBUTTONDOWN)
             {
-                printf("Bouton %d\n", e.jbutton.button);
-
-
-                // Haut
-                if(e.jbutton.button == 4)
-                {
-                    selected--;
-                    if(selected < 0)
-                        selected = 1;
-                }
-
-
-                // Bas
-                if(e.jbutton.button == 5)
-                {
-                    selected++;
-                    if(selected > 1)
-                        selected = 0;
-                }
-
-
-                // A
-                if(e.jbutton.button == 0)
-                {
-                    printf(
-                        "Selection : %s\n",
-                        stories[selected].title
-                    );
-                }
-
+                printf("Joy button %d\n", e.jbutton.button);
 
                 // B
                 if(e.jbutton.button == 1)
-                {
                     running = 0;
-                }
             }
         }
 
 
-        // fond
+        // fond bleu foncé
         SDL_SetRenderDrawColor(
             renderer,
             20,
-            20,
-            30,
+            40,
+            80,
             255
         );
 
         SDL_RenderClear(renderer);
 
 
-        // cases histoires
-        for(int i=0;i<2;i++)
+        // rectangle rouge
+        SDL_Rect r1 =
         {
-
-            SDL_Rect box;
-
-            box.x = 50;
-            box.y = 80 + i*100;
-            box.w = 540;
-            box.h = 70;
+            100,
+            100,
+            200,
+            100
+        };
 
 
-            if(i == selected)
-            {
-                SDL_SetRenderDrawColor(
-                    renderer,
-                    80,
-                    80,
-                    200,
-                    255
-                );
-            }
-            else
-            {
-                SDL_SetRenderDrawColor(
-                    renderer,
-                    50,
-                    50,
-                    60,
-                    255
-                );
-            }
+        SDL_SetRenderDrawColor(
+            renderer,
+            255,
+            0,
+            0,
+            255
+        );
+
+        SDL_RenderFillRect(
+            renderer,
+            &r1
+        );
 
 
-            SDL_RenderFillRect(
-                renderer,
-                &box
-            );
-        }
+        // rectangle vert
+        SDL_Rect r2 =
+        {
+            340,
+            250,
+            200,
+            100
+        };
+
+
+        SDL_SetRenderDrawColor(
+            renderer,
+            0,
+            255,
+            0,
+            255
+        );
+
+        SDL_RenderFillRect(
+            renderer,
+            &r2
+        );
 
 
         SDL_RenderPresent(renderer);
+
 
         SDL_Delay(16);
     }
 
 
-if(joystick)
-{
-    SDL_JoystickClose(joystick);
-}
+    printf("Fermeture TelmiStore\n");
+
+
+    if(joystick)
+        SDL_JoystickClose(joystick);
+
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
