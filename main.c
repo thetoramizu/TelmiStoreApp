@@ -1,7 +1,6 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 
-
 int main(int argc, char *argv[])
 {
     (void)argc;
@@ -9,13 +8,11 @@ int main(int argc, char *argv[])
 
     printf("TelmiStore SDL TEST start\n");
 
-
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
     {
-        printf("SDL Init erreur: %s\n", SDL_GetError());
+        printf("SDL init erreur: %s\n", SDL_GetError());
         return 1;
     }
-
 
     printf("Video driver: %s\n", SDL_GetCurrentVideoDriver());
 
@@ -26,17 +23,15 @@ int main(int argc, char *argv[])
         SDL_WINDOWPOS_CENTERED,
         640,
         480,
-        SDL_WINDOW_FULLSCREEN
+        0
     );
 
 
     if (!window)
     {
-        printf("Window erreur: %s\n", SDL_GetError());
-        SDL_Quit();
+        printf("Erreur fenetre: %s\n", SDL_GetError());
         return 1;
     }
-
 
     printf("Window OK\n");
 
@@ -44,44 +39,51 @@ int main(int argc, char *argv[])
     SDL_Renderer *renderer = SDL_CreateRenderer(
         window,
         -1,
-        SDL_RENDERER_ACCELERATED
+        SDL_RENDERER_SOFTWARE
     );
 
 
     if (!renderer)
     {
         printf("Renderer erreur: %s\n", SDL_GetError());
-        SDL_DestroyWindow(window);
-        SDL_Quit();
         return 1;
+    }
+
+
+    SDL_RendererInfo info;
+
+    if(SDL_GetRendererInfo(renderer, &info)==0)
+    {
+        printf("Renderer: %s\n", info.name);
     }
 
 
     printf("Renderer OK\n");
 
 
-    int joycount = SDL_NumJoysticks();
+    int joy_count = SDL_NumJoysticks();
 
-    printf("Joysticks: %d\n", joycount);
+    printf("Joysticks: %d\n", joy_count);
 
-    if (joycount > 0)
+    if(joy_count > 0)
     {
         SDL_Joystick *joy = SDL_JoystickOpen(0);
 
-        if (joy)
-            printf("Joystick OK\n");
+        if(joy)
+        {
+            printf("Joystick OK: %s\n",
+                   SDL_JoystickName(joy));
+        }
     }
 
-
-    SDL_Color white = {255,255,255,255};
-
-    SDL_Event e;
 
     int running = 1;
 
 
     while(running)
     {
+        SDL_Event e;
+
 
         while(SDL_PollEvent(&e))
         {
@@ -94,83 +96,45 @@ int main(int argc, char *argv[])
 
             if(e.type == SDL_KEYDOWN)
             {
-                int key = e.key.keysym.sym;
+                printf("Key %d\n",
+                       e.key.keysym.sym);
 
-                printf("Key %d\n", key);
 
-
-                switch(key)
+                /*
+                    START = ENTER
+                */
+                if(e.key.keysym.sym == SDLK_RETURN)
                 {
-
-                    // B
-                    case SDLK_LCTRL:
-                        printf("B -> exit\n");
-                        running = 0;
-                        break;
-
-
-                    // START
-                    case SDLK_RETURN:
-                        printf("START -> exit\n");
-                        running = 0;
-                        break;
-
-
-                    case SDLK_UP:
-                        printf("UP\n");
-                        break;
-
-
-                    case SDLK_DOWN:
-                        printf("DOWN\n");
-                        break;
-
-
-                    case SDLK_LEFT:
-                        printf("LEFT\n");
-                        break;
-
-
-                    case SDLK_RIGHT:
-                        printf("RIGHT\n");
-                        break;
-
-
-                    // A
-                    case SDLK_SPACE:
-                        printf("A\n");
-                        break;
-
-
-                    // X
-                    case SDLK_LSHIFT:
-                        printf("X\n");
-                        break;
-
-
-                    // Y
-                    case SDLK_LALT:
-                        printf("Y\n");
-                        break;
-
-
-                    // SELECT
-                    case SDLK_RCTRL:
-                        printf("SELECT\n");
-                        break;
+                    printf("Fermeture TelmiStore\n");
+                    running = 0;
                 }
             }
+
+
+            if(e.type == SDL_JOYBUTTONDOWN)
+            {
+                printf("Joy button %d\n",
+                       e.jbutton.button);
+            }
+
+
+            if(e.type == SDL_JOYAXISMOTION)
+            {
+                printf("Joy axis %d value %d\n",
+                       e.jaxis.axis,
+                       e.jaxis.value);
+            }
+
         }
 
 
-
         /*
-         * Test affichage Miyoo
-         */
+            TEST AFFICHAGE
+        */
 
         SDL_SetRenderDrawColor(
             renderer,
-            180,
+            255,
             0,
             0,
             255
@@ -179,44 +143,12 @@ int main(int argc, char *argv[])
         SDL_RenderClear(renderer);
 
 
-
-        /*
-         * Petit rectangle de vie
-         * pour confirmer que le framebuffer bouge
-         */
-
-        SDL_Rect box;
-
-        box.x = 220;
-        box.y = 180;
-        box.w = 200;
-        box.h = 120;
-
-
-        SDL_SetRenderDrawColor(
-            renderer,
-            255,
-            255,
-            255,
-            255
-        );
-
-
-        SDL_RenderFillRect(
-            renderer,
-            &box
-        );
-
-
         SDL_RenderPresent(renderer);
 
 
         SDL_Delay(16);
     }
 
-
-
-    printf("Fermeture TelmiStore\n");
 
 
     SDL_DestroyRenderer(renderer);
