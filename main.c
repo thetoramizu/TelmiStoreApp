@@ -3,9 +3,71 @@
 #include <string.h>
 
 
+#define WIDTH 640
+#define HEIGHT 480
+
+
+static Uint16 framebuffer[WIDTH * HEIGHT];
+
+
+void fill_screen(Uint16 color)
+{
+    for(int i=0;i<WIDTH*HEIGHT;i++)
+        framebuffer[i]=color;
+}
+
+
+void draw_rect(int x,int y,int w,int h,Uint16 color)
+{
+    for(int yy=y; yy<y+h; yy++)
+    {
+        if(yy<0 || yy>=HEIGHT)
+            continue;
+
+        for(int xx=x; xx<x+w; xx++)
+        {
+            if(xx>=0 && xx<WIDTH)
+                framebuffer[yy*WIDTH+xx]=color;
+        }
+    }
+}
+
+
+/*
+    Petite police bitmap 5x7
+    temporaire pour validation affichage
+*/
+
+void pixel(int x,int y,Uint16 c)
+{
+    if(x>=0 && x<WIDTH && y>=0 && y<HEIGHT)
+        framebuffer[y*WIDTH+x]=c;
+}
+
+
+void text_block(int x,int y,const char *s,Uint16 color)
+{
+    while(*s)
+    {
+        for(int yy=0;yy<7;yy++)
+        {
+            for(int xx=0;xx<5;xx++)
+            {
+                if((xx+yy+(*s))%3==0)
+                    pixel(x+xx,y+yy,color);
+            }
+        }
+
+        x+=8;
+        s++;
+    }
+}
+
+
+
 int main()
 {
-    printf("TelmiStore TEXTURE TEST start\n");
+    printf("TelmiStore MOCK start\n");
 
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
@@ -15,21 +77,24 @@ int main()
         SDL_GetCurrentVideoDriver());
 
 
-    SDL_Window *window = SDL_CreateWindow(
-        "TelmiStore",
-        0,
-        0,
-        640,
-        480,
-        SDL_WINDOW_FULLSCREEN
-    );
+    SDL_Window *window =
+        SDL_CreateWindow(
+            "TelmiStore",
+            0,
+            0,
+            WIDTH,
+            HEIGHT,
+            SDL_WINDOW_FULLSCREEN
+        );
 
 
-    if (!window)
+    if(!window)
     {
-        printf("Window error %s\n", SDL_GetError());
+        printf("Window error %s\n",
+            SDL_GetError());
         return 1;
     }
+
 
 
     SDL_Renderer *renderer =
@@ -40,14 +105,12 @@ int main()
         );
 
 
-    if (!renderer)
+    if(!renderer)
     {
-        printf("Renderer error %s\n", SDL_GetError());
+        printf("Renderer error %s\n",
+            SDL_GetError());
         return 1;
     }
-
-
-    printf("Renderer OK\n");
 
 
     SDL_Texture *texture =
@@ -55,89 +118,180 @@ int main()
             renderer,
             SDL_PIXELFORMAT_RGB565,
             SDL_TEXTUREACCESS_STREAMING,
-            640,
-            480
+            WIDTH,
+            HEIGHT
         );
 
 
-    if (!texture)
+    if(!texture)
     {
-        printf("Texture error %s\n", SDL_GetError());
+        printf("Texture error %s\n",
+            SDL_GetError());
         return 1;
     }
 
 
-    printf("Texture OK\n");
+    printf("Video pipeline OK\n");
 
 
-    void *pixels;
-    int pitch;
+
+    const char *menu[] =
+    {
+        "Emulateurs",
+        "Favoris",
+        "Parametres",
+        "Quitter"
+    };
 
 
-    if (SDL_LockTexture(
-            texture,
-            NULL,
-            &pixels,
-            &pitch) == 0)
+    int selected=0;
+    int running=1;
+
+
+    while(running)
     {
 
-        printf("Texture pitch %d\n", pitch);
-
-
-        unsigned short *p = pixels;
-
-
-        for(int y=0;y<480;y++)
-        {
-            for(int x=0;x<640;x++)
-            {
-                p[y*(pitch/2)+x] =
-                    0xF800; // rouge RGB565
-            }
-        }
-
-
-        SDL_UnlockTexture(texture);
-    }
-
-
-    SDL_RenderClear(renderer);
-
-
-    SDL_RenderCopy(
-        renderer,
-        texture,
-        NULL,
-        NULL
-    );
-
-
-    SDL_RenderPresent(renderer);
-
-
-    printf("DISPLAY DONE\n");
-
-
-    while(1)
-    {
         SDL_Event e;
+
 
         while(SDL_PollEvent(&e))
         {
-            if(e.type == SDL_KEYDOWN)
+            if(e.type==SDL_KEYDOWN)
             {
-                printf("Key %d\n",
-                    e.key.keysym.sym);
+                int k=e.key.keysym.sym;
 
-                if(e.key.keysym.sym == SDLK_RETURN)
+                printf("Key %d\n",k);
+
+
+                if(k==SDLK_DOWN)
                 {
-                    return 0;
+                    selected++;
+                    if(selected>3)
+                        selected=0;
+                }
+
+
+                if(k==SDLK_UP)
+                {
+                    selected--;
+                    if(selected<0)
+                        selected=3;
+                }
+
+
+                if(k==SDLK_SPACE)
+                {
+                    printf("A select %d\n",selected);
+                }
+
+
+                if(k==SDLK_LCTRL)
+                {
+                    printf("B retour\n");
+                }
+
+
+                if(k==SDLK_RETURN)
+                {
+                    running=0;
                 }
             }
         }
 
+
+
+        /*
+            Dessin
+        */
+
+        fill_screen(0x0000);
+
+
+        draw_rect(
+            40,
+            40,
+            560,
+            50,
+            0x07E0
+        );
+
+
+        text_block(
+            70,
+            60,
+            "TELMISTORE",
+            0xffff
+        );
+
+
+        for(int i=0;i<4;i++)
+        {
+            Uint16 col =
+                (i==selected)
+                ? 0xF800
+                : 0xFFFF;
+
+
+            draw_rect(
+                80,
+                130+i*60,
+                300,
+                35,
+                col
+            );
+
+
+            text_block(
+                100,
+                145+i*60,
+                menu[i],
+                0x0000
+            );
+        }
+
+
+
+        void *pixels;
+        int pitch;
+
+
+        if(SDL_LockTexture(
+            texture,
+            NULL,
+            &pixels,
+            &pitch)==0)
+        {
+            memcpy(
+                pixels,
+                framebuffer,
+                WIDTH*HEIGHT*2
+            );
+
+            SDL_UnlockTexture(texture);
+        }
+
+
+        SDL_RenderCopy(
+            renderer,
+            texture,
+            NULL,
+            NULL
+        );
+
+
+        SDL_RenderPresent(renderer);
+
+
         SDL_Delay(16);
     }
+
+
+
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+
+    SDL_Quit();
 
 
     return 0;
