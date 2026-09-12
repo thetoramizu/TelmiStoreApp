@@ -1,12 +1,14 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 
+
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
 
-    printf("TelmiStore SDL TEST start\n");
+    printf("TelmiStore SDL RENDER TEST start\n");
+
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
     {
@@ -14,7 +16,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    printf("Video driver: %s\n", SDL_GetCurrentVideoDriver());
+
+    printf("Video driver: %s\n",
+           SDL_GetCurrentVideoDriver());
 
 
     SDL_Window *window = SDL_CreateWindow(
@@ -23,7 +27,7 @@ int main(int argc, char *argv[])
         SDL_WINDOWPOS_CENTERED,
         640,
         480,
-        0
+        SDL_WINDOW_FULLSCREEN
     );
 
 
@@ -32,6 +36,7 @@ int main(int argc, char *argv[])
         printf("Window erreur: %s\n", SDL_GetError());
         return 1;
     }
+
 
     printf("Window OK\n");
 
@@ -42,15 +47,23 @@ int main(int argc, char *argv[])
     printf("Window size %dx%d\n", w, h);
 
 
-    SDL_Surface *surface = SDL_GetWindowSurface(window);
 
-    if (!surface)
+    SDL_Renderer *renderer = SDL_CreateRenderer(
+        window,
+        -1,
+        SDL_RENDERER_SOFTWARE
+    );
+
+
+    if (!renderer)
     {
-        printf("Surface erreur: %s\n", SDL_GetError());
+        printf("Renderer erreur: %s\n", SDL_GetError());
         return 1;
     }
 
-    printf("Surface OK\n");
+
+    printf("Renderer OK\n");
+
 
 
     if (SDL_NumJoysticks() > 0)
@@ -62,12 +75,36 @@ int main(int argc, char *argv[])
     }
 
 
+
+    /*
+        TEST AFFICHAGE ROUGE
+    */
+
+    SDL_SetRenderDrawColor(
+        renderer,
+        255,
+        0,
+        0,
+        255
+    );
+
+
+    SDL_RenderClear(renderer);
+
+    SDL_RenderPresent(renderer);
+
+
+    printf("RED DRAW DONE\n");
+
+
+
     int running = 1;
 
 
     while (running)
     {
         SDL_Event e;
+
 
         while (SDL_PollEvent(&e))
         {
@@ -77,7 +114,9 @@ int main(int argc, char *argv[])
 
             if (e.type == SDL_KEYDOWN)
             {
-                printf("Key %d\n", e.key.keysym.sym);
+                printf("Key %d\n",
+                       e.key.keysym.sym);
+
 
                 // START
                 if (e.key.keysym.sym == SDLK_RETURN)
@@ -89,32 +128,17 @@ int main(int argc, char *argv[])
         }
 
 
-        /*
-            ECRAN ROUGE
-        */
-
-        SDL_FillRect(
-            surface,
-            NULL,
-            SDL_MapRGB(
-                surface->format,
-                255,
-                0,
-                0
-            )
-        );
-
-
-        SDL_UpdateWindowSurface(window);
-
-
         SDL_Delay(16);
     }
 
 
+
+    SDL_DestroyRenderer(renderer);
+
     SDL_DestroyWindow(window);
 
     SDL_Quit();
+
 
     return 0;
 }
