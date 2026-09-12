@@ -2,7 +2,11 @@ CC=arm-linux-gnueabihf-gcc
 
 CFLAGS=-Iinclude
 
-LDFLAGS=-Llibs -lSDL2
+LDFLAGS= \
+-Llibs \
+-Wl,--allow-shlib-undefined \
+-Wl,-rpath-link,libs \
+-lSDL2
 
 TARGET=telmistore
 
