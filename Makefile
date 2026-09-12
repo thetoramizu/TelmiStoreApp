@@ -1,12 +1,17 @@
 CC=arm-linux-gnueabihf-gcc
 
-CFLAGS=-Iinclude
+CFLAGS=-I/usr/include/SDL2
 
-LDFLAGS=-Llibs \
--lSDL2
+LDFLAGS=-lSDL2
+
+TARGET=telmistore
+
+SRC=main.c
+
 
 all:
-	$(CC) $(CFLAGS) main.c -o telmistore $(LDFLAGS)
+	$(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
+
 
 clean:
-	rm -f telmistore
+	rm -f $(TARGET)
