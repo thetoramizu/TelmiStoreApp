@@ -20,24 +20,30 @@ int start_download_story(Story *story)
     char cmd[1024];
 
 
-    snprintf(
-        cmd,
-        sizeof(cmd),
-        "rm -f %s %s %s && "
-        "touch %s && "
-        "wget "
-        "-O %s \"%s\" "
-        "> %s 2>&1 && "
-        "mv %s %s &",
-        ZIPFILE,
-        TMPZIP,
-        LOGFILE,
-        TMPZIP,
-        story->download,
-        LOGFILE,
-        TMPZIP,
-        ZIPFILE
-    );
+snprintf(
+    cmd,
+    sizeof(cmd),
+    "rm -f %s %s %s %s && "
+    "touch %s && "
+    "wget -O %s \"%s\" > %s 2>&1 && "
+    "mv %s %s && "
+    "rm -f %s &",
+    ZIPFILE,
+    TMPZIP,
+    LOGFILE,
+    RUNFILE,
+
+    RUNFILE,
+
+    TMPZIP,
+    story->download,
+    LOGFILE,
+
+    TMPZIP,
+    ZIPFILE,
+
+    RUNFILE
+);
 
 printf("CMD=%s\n", cmd);
     return system(cmd);
