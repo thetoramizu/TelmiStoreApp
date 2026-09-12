@@ -1,30 +1,24 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
+#include <string.h>
 
 
-int main(int argc, char *argv[])
+int main()
 {
-    (void)argc;
-    (void)argv;
-
-    printf("TelmiStore SDL RENDER TEST start\n");
+    printf("TelmiStore TEXTURE TEST start\n");
 
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
-    {
-        printf("SDL init erreur: %s\n", SDL_GetError());
-        return 1;
-    }
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
 
 
     printf("Video driver: %s\n",
-           SDL_GetCurrentVideoDriver());
+        SDL_GetCurrentVideoDriver());
 
 
     SDL_Window *window = SDL_CreateWindow(
         "TelmiStore",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
+        0,
+        0,
         640,
         480,
         SDL_WINDOW_FULLSCREEN
@@ -33,31 +27,22 @@ int main(int argc, char *argv[])
 
     if (!window)
     {
-        printf("Window erreur: %s\n", SDL_GetError());
+        printf("Window error %s\n", SDL_GetError());
         return 1;
     }
 
 
-    printf("Window OK\n");
-
-
-    int w, h;
-    SDL_GetWindowSize(window, &w, &h);
-
-    printf("Window size %dx%d\n", w, h);
-
-
-
-    SDL_Renderer *renderer = SDL_CreateRenderer(
-        window,
-        -1,
-        SDL_RENDERER_SOFTWARE
-    );
+    SDL_Renderer *renderer =
+        SDL_CreateRenderer(
+            window,
+            -1,
+            SDL_RENDERER_ACCELERATED
+        );
 
 
     if (!renderer)
     {
-        printf("Renderer erreur: %s\n", SDL_GetError());
+        printf("Renderer error %s\n", SDL_GetError());
         return 1;
     }
 
@@ -65,79 +50,94 @@ int main(int argc, char *argv[])
     printf("Renderer OK\n");
 
 
+    SDL_Texture *texture =
+        SDL_CreateTexture(
+            renderer,
+            SDL_PIXELFORMAT_RGB565,
+            SDL_TEXTUREACCESS_STREAMING,
+            640,
+            480
+        );
 
-    if (SDL_NumJoysticks() > 0)
+
+    if (!texture)
     {
-        SDL_Joystick *joy = SDL_JoystickOpen(0);
-
-        if (joy)
-            printf("Joystick OK\n");
+        printf("Texture error %s\n", SDL_GetError());
+        return 1;
     }
 
 
-
-    /*
-        TEST AFFICHAGE ROUGE
-    */
-
-    SDL_SetRenderDrawColor(
-        renderer,
-        255,
-        0,
-        0,
-        255
-    );
+    printf("Texture OK\n");
 
 
-    SDL_RenderClear(renderer);
-
-    SDL_RenderPresent(renderer);
-
-
-    printf("RED DRAW DONE\n");
+    void *pixels;
+    int pitch;
 
 
-
-    int running = 1;
-
-
-    while (running)
+    if (SDL_LockTexture(
+            texture,
+            NULL,
+            &pixels,
+            &pitch) == 0)
     {
-        SDL_Event e;
+
+        printf("Texture pitch %d\n", pitch);
 
 
-        while (SDL_PollEvent(&e))
+        unsigned short *p = pixels;
+
+
+        for(int y=0;y<480;y++)
         {
-            if (e.type == SDL_QUIT)
-                running = 0;
-
-
-            if (e.type == SDL_KEYDOWN)
+            for(int x=0;x<640;x++)
             {
-                printf("Key %d\n",
-                       e.key.keysym.sym);
-
-
-                // START
-                if (e.key.keysym.sym == SDLK_RETURN)
-                {
-                    printf("Fermeture TelmiStore\n");
-                    running = 0;
-                }
+                p[y*(pitch/2)+x] =
+                    0xF800; // rouge RGB565
             }
         }
 
 
-        SDL_Delay(16);
+        SDL_UnlockTexture(texture);
     }
 
 
+    SDL_RenderClear(renderer);
 
-    SDL_DestroyRenderer(renderer);
 
-    SDL_DestroyWindow(window);
+    SDL_RenderCopy(
+        renderer,
+        texture,
+        NULL,
+        NULL
+    );
 
-    SDL_Quit();
+
+    SDL_RenderPresent(renderer);
+
+
+    printf("DISPLAY DONE\n");
+
+
+    while(1)
+    {
+        SDL_Event e;
+
+        while(SDL_PollEvent(&e))
+        {
+            if(e.type == SDL_KEYDOWN)
+            {
+                printf("Key %d\n",
+                    e.key.keysym.sym);
+
+                if(e.key.keysym.sym == SDLK_RETURN)
+                {
+                    return 0;
+                }
+            }
+        }
+
+        SDL_Delay(16);
+    }
 
 
     return 0;
