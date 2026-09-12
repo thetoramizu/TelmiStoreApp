@@ -39,7 +39,7 @@ int start_download_story(Story *story)
         ZIPFILE
     );
 
-
+printf("CMD=%s\n", cmd);
     return system(cmd);
 }
 
