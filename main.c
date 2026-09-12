@@ -3,7 +3,7 @@
 #include <string.h>
 
 #include "font8x8.h"
-
+#include "store.h"
 
 #define W 640
 #define H 480
@@ -25,40 +25,8 @@ static Uint16 framebuffer[W*H];
     Données TelmiStore
 */
 
-typedef struct
-{
-    const char *title;
-    const char *description;
-    int installed;
 
-} Story;
-
-
-
-Story stories[] =
-{
-    {
-        "L ETE DE CECILE",
-        "UNE PETITE FILLE DECOUVRE UNE FORET MYSTERIEUSE",
-        0
-    },
-
-    {
-        "LA FORET MAGIQUE",
-        "UNE AVENTURE AU COEUR D UN MONDE OUBLIE",
-        0
-    },
-
-    {
-        "LE DRAGON BLEU",
-        "UN DRAGON PROTEGE UN ANCIEN ROYAUME",
-        0
-    }
-};
-
-
-#define STORY_COUNT 3
-
+#define STORY_COUNT story_count
 
 
 /*
@@ -168,8 +136,12 @@ void draw_char(
     const uint8_t *g=glyph(c);
 
 
-    if(!g)
-        return;
+if(!g)
+{
+    // carré de remplacement pour caractère absent
+    rect(x,y,8*scale,8*scale,RED);
+    return;
+}
 
 
     for(int row=0;row<8;row++)
@@ -388,6 +360,10 @@ int main()
         return 1;
     }
 
+    if(store_load()==0)
+    {
+        printf("Impossible de charger le store\n");
+    }
 
     printf("Video driver: %s\n",
         SDL_GetCurrentVideoDriver()
